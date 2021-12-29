@@ -10,7 +10,7 @@ logger = logging.getLogger('youless')
 
 GRANULARITY_MAP = {
     'minute': {'param': 'h', 'reports': 20, 'db': 'youless_minute'},
-    'hour': {'param': 'w', 'reports': 30, 'db': 'youless_hour'}
+    'hour': {'param': 'd', 'reports': 70, 'db': 'youless_hour'}
 }
 
 def convert_data(data):
@@ -56,7 +56,7 @@ def store_data(df, con):
     # Only keep data we don't have yet
     df = df[df['time'] > last_ts ]
     logger.info('Adding {} new rows'.format(len(df)))
-    df.to_sql(db, con, if_exists='append')
+    df.to_sql(db, con, if_exists='append', index=False)
 
 
 if __name__ == '__main__':
