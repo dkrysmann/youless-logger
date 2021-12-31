@@ -4,6 +4,16 @@ import dash_bootstrap_components as dbc
 import plotly.graph_objects as go
 
 TEMPLATE = 'simple_white'
+GLOBAL_LAYOUT = {
+    'font': {'size': 20}, 
+    'legend': {
+        'orientation': 'h',
+        'yanchor': 'bottom',
+        'y': 1.02,
+        'xanchor': 'right',
+        'x': 1
+    }
+}
 
 def plot_last_24_hours(df_hour):
     df = df_hour.copy()
@@ -21,16 +31,21 @@ def plot_last_24_hours(df_hour):
         ),
     )
     fig.update_yaxes(title_text='Wh')
-    fig.update_layout(template=TEMPLATE)
+    fig.update_layout(template=TEMPLATE, **GLOBAL_LAYOUT)
     return fig
 
-def plot_last_24_hours_minute(df_minute):
+def plot_current(df_minute):
     df = df_minute.copy()
-    df = df.sort_values('time', ascending=False).head(6*24)
+    df = df.sort_values('time', ascending=False).head(60*12)
 
     plots = [            
-        go.Bar(x=df['time'], y=df['energy_consumption'], name='Value'), 
-        go.Scatter(x=df['time'], y=df['avg_energy_consumption'], name='Average', mode='lines')
+        go.Bar(x=df['time'], y=df['energy_consumption'], name='Value', marker={
+            'color': df['energy_consumption'], 
+            'colorscale': [(0, '#00c873'), (0.5, '#ffdf40'), (1, '#fd7103')],
+            'cmax': 1000,
+            'cmin': 200,
+            }), 
+        #go.Scatter(x=df['time'], y=df['avg_energy_consumption'], name='Average', mode='lines')
     ]
 
     fig =  go.Figure(
@@ -40,7 +55,7 @@ def plot_last_24_hours_minute(df_minute):
         )
     )
     fig.update_yaxes(title_text='Watt')
-    fig.update_layout(template=TEMPLATE)
+    fig.update_layout(template=TEMPLATE, **GLOBAL_LAYOUT)
     return fig
 
 def plot_last_30_days(df_day):
@@ -63,7 +78,7 @@ def plot_last_30_days(df_day):
         tickformat="%a %d %b\n%Y"
     )
     fig.update_yaxes(title_text='kWh')
-    fig.update_layout(template=TEMPLATE)
+    fig.update_layout(template=TEMPLATE, **GLOBAL_LAYOUT)
     return fig
 
 
@@ -86,7 +101,7 @@ def plot_last_year(df_month):
         tickformat="%b\n%Y"
     )
     fig.update_yaxes(title_text='kWh')
-    fig.update_layout(template=TEMPLATE)
+    fig.update_layout(template=TEMPLATE, **GLOBAL_LAYOUT)
     return fig
 
 def plot_indicator_trace(title, value, reference=0, mode='number+delta', **kwargs):
@@ -104,6 +119,15 @@ def plot_indicator_trace(title, value, reference=0, mode='number+delta', **kwarg
         **kwargs
     )
 
+def _indicator_card(**kwargs):
+    fig = go.Figure(
+        plot_indicator_trace(**kwargs)
+    )
+    fig.update_layout(
+        autosize=True,
+    )
+    return dbc.Card(dbc.CardBody(dcc.Graph(figure=fig)))
+
 def dashboard_summary_numbers(data):
     tmp = data['hour'].sort_values('time', ascending=False).head(24)[['energy_consumption', 'avg_energy_consumption']].sum()
     # In kwh
@@ -119,37 +143,30 @@ def dashboard_summary_numbers(data):
     tmp = data['day'].sort_values('time', ascending=False).head(365)[['energy_consumption']].sum()
     last_365d = round(tmp['energy_consumption'], 2)
 
-    fig = go.Figure()
-    fig.add_trace(plot_indicator_trace(
+    card_1 = _indicator_card(
         title='Last 24h',
         number = {'suffix': ' kWh'},
         value=last_24h,
         reference=last_24h_avg, 
         domain={'row': 0, 'column': 0},
-    ))
-    fig.add_trace(plot_indicator_trace(
+    )
+    card_2 = _indicator_card(
         title='Last 30d',
         number = {'suffix': ' kWh'},
         value=last_30d,
         reference=month_avg, 
         domain={'row': 0, 'column': 1},
-    ))
-    fig.add_trace(plot_indicator_trace(
+    )
+    card_3 = _indicator_card(
         title='Last 365d',
         number = {'suffix': ' kWh'},
         value=last_365d,
         domain={'row': 0, 'column': 2},
         mode='number'
-    ))
-    fig.update_layout(
-        grid={'rows': 1, 'columns': 3},
-        #margin={'t': 0, 'b': 0}
     )
-    # Return the entire structured block
-    return dcc.Graph(figure=fig)
-    return html.Div(children=[
-        dbc.Card(
-            dbc.CardBody(
-                dcc.Graph(figure=fig)),
-        )
+    return dbc.Row([
+        dbc.Col([card_1], width=6),
+        dbc.Col([card_2], width=6),
+        dbc.Col([card_3], width=6)
+        
     ])
