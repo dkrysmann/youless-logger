@@ -10,11 +10,12 @@ We assume the logger is reachable on `http://youless/` via your browser.
 The python script `looger.py` in this repository extracts the logged data (hour and minute data) from a Youless logger.
 The data is stored in a SQLite database named `youless.db` with 2 tables set up:
 
-- `youless_minute` for minute based data
-- `youless_hour` for hourly data
+- `youless_minute` for minute based energy consumption
+- `youless_hour` for hourly energy consumption
+- `youless_day` for daily energy consumptoin
 
 # Dashboard
-To be done
+The dash application runs a dashboard to visualize the energy consumption.
 
 # Setup
 
@@ -36,3 +37,5 @@ Enter the following line (adjust the path to the script):
 ```
 
 Save it.
+
+## Dashboard
