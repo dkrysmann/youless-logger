@@ -97,7 +97,7 @@ def store_data(df, con):
         FROM tmp AS new
         WHERE NOT EXISTS (
             SELECT 1 FROM {table_name} old 
-            WHERE old.time= new.time
+            WHERE old.time = new.time
         );
         '''
         cur = con.cursor()
