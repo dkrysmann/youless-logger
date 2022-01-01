@@ -1,7 +1,5 @@
-import dash
-import dash_core_components as dcc
-import dash_html_components as html
 import dash_bootstrap_components as dbc
+from dash import html, dcc, Dash
 from helpers.data_processing import load_data
 from helpers.charts import (
     dashboard_summary_numbers,
@@ -68,7 +66,7 @@ def serve_layout():
     ], fluid=True)
 
        
-app = dash.Dash(external_stylesheets=[dbc.themes.FLATLY])
+app = Dash(external_stylesheets=[dbc.themes.FLATLY])
 
 app.title = 'Energy usage monitoring'
 app.layout = serve_layout
