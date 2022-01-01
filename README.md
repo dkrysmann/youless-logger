@@ -21,6 +21,19 @@ The dash application runs a dashboard to visualize the energy consumption.
 
 # Setup
 
+First you need to create a `config.json` file in the root of the repository. This file can have the following parameters:
+
+```json
+{
+    "db_path": "/home/user/youless-logger/youless.db",
+    "debug_mode": false
+}
+```
+
+- `db_path`: Full path to the file which should store your data (file will be created automatically)
+- `debug_mode`: Indicator whether the dash app should be ran in debug mode
+
+
 ## Script
 
 You can run the logger script (`logger.py`) manually or set up a crontab to run it automatically.

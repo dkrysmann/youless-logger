@@ -3,6 +3,7 @@ import logging
 import sqlite3 as sql
 import pandas as pd
 from datetime import datetime, timedelta
+from config import DB_PATH
 
 logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s', level=logging.INFO, datefmt='%Y-%m-%d %H:%M:%S')
 logger = logging.getLogger('youless')
@@ -111,7 +112,7 @@ def store_data(df, con):
 
 if __name__ == '__main__':
     granularity = 'minute'
-    with sql.connect('youless.db') as con:
+    with sql.connect(DB_PATH) as con:
         granularity = 'minute'
         df = fetch_data(granularity)
         store_data(df, con)

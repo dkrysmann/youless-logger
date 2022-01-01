@@ -1,11 +1,9 @@
-
 import pandas as pd
 import sqlite3 as sql
 from datetime import datetime
+from config import DB_PATH
 
-def load_data():
-    DB_PATH = '../youless-logger/youless.db'
-    
+def load_data():    
     with sql.connect(DB_PATH) as con:
         df_m = pd.read_sql(
             '''

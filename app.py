@@ -8,6 +8,7 @@ from helpers.charts import (
     plot_last_year,
     plot_current
 )
+from config import DEBUG_MODE
 
 
 def serve_layout():
@@ -72,4 +73,4 @@ app.title = 'Energy usage monitoring'
 app.layout = serve_layout
 
 if __name__ == '__main__':
-    app.run_server(debug=False, host='0.0.0.0', port='8050')
+    app.run_server(debug=DEBUG_MODE, host='0.0.0.0', port='8050')
