@@ -17,6 +17,8 @@ The data is stored in a SQLite database named `youless.db` with 3 tables set up:
 # Dashboard
 The dash application runs a dashboard to visualize the energy consumption.
 
+![dashboard](./assets/dashboard.png)
+
 # Setup
 
 ## Script
