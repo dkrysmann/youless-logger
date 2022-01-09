@@ -80,3 +80,13 @@ Example:
 ```
 
 Save it.
+
+Alternatively you can also use the provided `youless-app.service` file and run the application with systemd.
+Make sure to adjust the `WorkingDirectory` and the `ExecStart` parameters correctly.
+
+You should be able to access the app in your browser while you are in the same network via the devices IP address or host name.
+For a standard raspberry pi you could reach it on
+
+```
+rasbperrypi:8050
+```
