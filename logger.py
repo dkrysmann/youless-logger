@@ -6,8 +6,7 @@ from datetime import datetime, timedelta
 from config import DB_PATH
 
 
-logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s', level=logging.INFO, datefmt='%Y-%m-%d %H:%M:%S')
-logger = logging.getLogger('youless')
+logging.basicConfig(format='%(name)s: %(asctime)s %(levelname)s %(message)s', level=logging.INFO, datefmt='%Y-%m-%d %H:%M:%S')
 
 
 class YoulessBaseLogger:
@@ -142,7 +141,7 @@ class YoulessBaseLogger:
                 con.commit()
                 value_count = cur.rowcount
             
-            logger.info('Uploaded {} new values'.format(value_count))
+            self.logger.info('Uploaded {} new values'.format(value_count))
 
 
 class YoulessEnergyMinute(YoulessBaseLogger):

@@ -1,5 +1,6 @@
 
 from dash import dcc
+import pandas as pd
 import dash_bootstrap_components as dbc
 import plotly.graph_objects as go
 
@@ -15,24 +16,21 @@ GLOBAL_LAYOUT = {
     }
 }
 
-def plot_last_24_hours(df_hour):
-    df = df_hour.copy()
-    df = df.sort_values('time', ascending=False).head(24)
-
+def plot_bar_with_avg_line(df: pd.DataFrame, title: str, unit: str):
     plots = [            
         go.Bar(x=df['time'], y=df['energy_consumption'], name='Value', text=df['energy_consumption']), 
         go.Scatter(x=df['time'], y=df['avg_energy_consumption'], name='Average', mode='lines')
-    ]
-
+    ]     
     fig =  go.Figure(
         data=plots,
         layout=go.Layout(
-            title=go.layout.Title(text="Energy consumption per hour")
+            title=go.layout.Title(text=title)
         ),
     )
-    fig.update_yaxes(title_text='Wh')
+    fig.update_yaxes(title_text=unit)
     fig.update_layout(template=TEMPLATE, **GLOBAL_LAYOUT)
     return fig
+
 
 def plot_current(df_minute):
     df = df_minute.copy()
@@ -58,31 +56,8 @@ def plot_current(df_minute):
     fig.update_layout(template=TEMPLATE, **GLOBAL_LAYOUT)
     return fig
 
-def plot_last_30_days(df_day):
-    df = df_day.copy()
-    df = df.sort_values('time', ascending=False).head(30)
 
-    plots = [            
-        go.Bar(x=df['time'], y=df['energy_consumption'], name='Value', text=df['energy_consumption']), 
-        go.Scatter(x=df['time'], y=df['avg_energy_consumption_weekday'], name='Average (weekday)', mode='lines')
-    ]
-
-    fig =  go.Figure(
-        data=plots,
-        layout=go.Layout(
-            title=go.layout.Title(text="Energy consumption last 30 days")
-        )
-    )
-
-    fig.update_xaxes(
-        tickformat="%a %d %b\n%Y"
-    )
-    fig.update_yaxes(title_text='kWh')
-    fig.update_layout(template=TEMPLATE, **GLOBAL_LAYOUT)
-    return fig
-
-
-def plot_last_year(df_month):
+def plot_last_year(df_month, title, unit):
     df = df_month.copy()
     df = df.sort_values('time').tail(12)
 
@@ -93,16 +68,17 @@ def plot_last_year(df_month):
     fig =  go.Figure(
         data=plots,
         layout=go.Layout(
-            title=go.layout.Title(text="Energy consumption last 12 months")
+            title=go.layout.Title(text=title)
         )
     )
     fig.update_xaxes(
         dtick="M1",
         tickformat="%b\n%Y"
     )
-    fig.update_yaxes(title_text='kWh')
+    fig.update_yaxes(title_text=unit)
     fig.update_layout(template=TEMPLATE, **GLOBAL_LAYOUT)
     return fig
+
 
 def plot_indicator_trace(title, value, reference=0, mode='number+delta', **kwargs):
     return go.Indicator(
@@ -119,6 +95,7 @@ def plot_indicator_trace(title, value, reference=0, mode='number+delta', **kwarg
         **kwargs
     )
 
+
 def _indicator_card(**kwargs):
     fig = go.Figure(
         plot_indicator_trace(**kwargs)
@@ -127,6 +104,7 @@ def _indicator_card(**kwargs):
         autosize=True,
     )
     return dbc.Card(dbc.CardBody(dcc.Graph(figure=fig)))
+
 
 def dashboard_summary_numbers(data):
     tmp = data['hour'].sort_values('time', ascending=False).head(24)[['energy_consumption', 'avg_energy_consumption']].sum()

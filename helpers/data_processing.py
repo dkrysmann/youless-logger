@@ -1,122 +1,141 @@
 import pandas as pd
 import sqlite3 as sql
-from datetime import datetime
 from config import DB_PATH
+
+
+class YoulessData:
+    data = None
+    # Table names dictionary. Can be used for query formatting
+    table_names = {}
+    query = None
+
+    def __init__(self):
+        self.load_data()
+
+    def load_data(self):
+        with sql.connect(DB_PATH) as con:
+            query = self.query.format(**self.table_names)
+            self.data = pd.read_sql(query, con)
+
+
+class EnergyDataMinute(YoulessData):
+    table_names = {'minute_table': 'youless_minute'}
+    query = '''
+    WITH minute_data AS (
+        SELECT 
+            *,
+            strftime('%H', time) AS hour,
+            strftime('%M', time) AS minute,
+            strftime('%Y-%m-%d', time) AS date,
+			Cast((JulianDay(CURRENT_TIMESTAMP) - JulianDay(time)) * 24 As Integer) AS hour_diff
+        FROM {minute_table}
+    ), average AS (
+        SELECT 
+            AVG(energy_consumption) AS avg_energy_consumption,
+            strftime('%H', time) AS hour,
+            strftime('%M', time) AS minute
+        FROM {minute_table}
+        GROUP BY hour, minute
+    )
+
+    SELECT 
+        * 
+    FROM minute_data
+    LEFT JOIN average USING(hour, minute)
+    WHERE  hour_diff <= 12
+    '''
+
+class EnergyDataHour(YoulessData):
+    table_names = {'hour_table': 'youless_hour'}
+    query = '''
+    WITH data AS (
+        SELECT 
+            *,
+            strftime('%H', time) AS hour,
+            strftime('%w', time) AS week_day,
+            strftime('%Y-%m-%d', time) AS date
+        FROM {hour_table}
+    ), average AS (
+        SELECT 
+            AVG(energy_consumption) AS avg_energy_consumption,
+            strftime('%H', time) AS hour
+        FROM {hour_table}
+        GROUP BY hour
+    )
+
+    SELECT 
+        * 
+    FROM data
+    LEFT JOIN average USING(hour)
+    ORDER BY time DESC
+    LIMIT 24
+    '''
+
+
+class EnergyDataDay(YoulessData):
+    table_names = {'day_table': 'youless_day', 'hour_table': 'youless_hour'}
+    query = '''
+    WITH data AS (
+        SELECT 
+            *,
+            strftime('%w', time) AS week_day
+        FROM {day_table}
+    ), todays_energy AS (
+        SELECT 
+            strftime('%Y-%m-%d 00:00:00', time) AS time,
+            SUM(energy_consumption)/1000 AS energy_consumption,
+            'kWh' AS unit,
+            strftime('%w', time) AS week_day
+        FROM {hour_table}
+        WHERE strftime('%Y-%m-%d', time) = CURRENT_DATE
+        GROUP BY 1, week_day, unit
+    ), average AS (
+        SELECT 
+            AVG(energy_consumption) AS avg_energy_consumption,
+            strftime('%w', time) AS week_day
+        FROM {day_table}
+        GROUP BY week_day
+    ), current_day_added AS (
+        -- Current day needs to be filled with the hour data
+        SELECT * FROM data
+        UNION ALL
+        SELECT * FROM todays_energy
+    )
+
+    SELECT 
+        * 
+    FROM current_day_added
+    LEFT JOIN average USING(week_day)
+    ORDER BY time DESC
+    LIMIT 365
+    '''
+
+class EnergyDataMonth(YoulessData):
+    table_names = {'day_table': 'youless_day'}
+    query = '''
+    SELECT 
+        SUM(energy_consumption) AS energy_consumption,
+        strftime('%Y-%m-01 00:00:00', time) AS time,
+        strftime('%m', time) AS month,
+        strftime('%Y', time) AS year
+    FROM {day_table}
+    GROUP BY year, month
+    '''
+
 
 def load_data():    
     with sql.connect(DB_PATH) as con:
-        df_m = pd.read_sql(
-            '''
-            SELECT 
-                *,
-                strftime('%H', time) AS hour,
-                strftime('%M', time) AS minute,
-                strftime('%Y-%m-%d', time) AS date
-            FROM youless_minute
-            ''',
-            con
-        )
-        df_m_avg = pd.read_sql(
-            '''
-            SELECT 
-                AVG(energy_consumption) AS avg_energy_consumption,
-                strftime('%H', time) AS hour,
-                strftime('%M', time) AS minute
-            FROM youless_minute
-            GROUP BY hour, minute
-            ''',
-            con
-        )
-        df_m = pd.merge(
-            df_m,
-            df_m_avg,
-            on=['hour', 'minute']
-        )
+        energy_minute = EnergyDataMinute()
+        df_m = energy_minute.data
 
-        df_h = pd.read_sql(
-            '''
-            SELECT 
-                *,
-                strftime('%H', time) AS hour,
-                strftime('%w', time) AS week_day,
-                strftime('%Y-%m-%d', time) AS date
-            FROM youless_hour
-            ''',
-            con
-        )
-        # We need to fill the current hour with the values from minute
-        wh_per_hour = df_m.copy()
-        wh_per_hour['time'] = wh_per_hour['date'] + ' ' + wh_per_hour['hour'] + ':00:00'
-        wh_per_hour = wh_per_hour.groupby(['time', 'hour']).agg(
-            energy_consumption=('energy_consumption', 
-            lambda x: round(x.mean()))
-        )
-        df_h = df_h.set_index(['time', 'hour']).combine_first(wh_per_hour).reset_index()
-        df_h['time'] = pd.to_datetime(df_h['time'])
+        energy_hour = EnergyDataHour()
+        df_h = energy_hour.data
 
-        df_h_avg = pd.read_sql(
-            '''
-            SELECT 
-                AVG(energy_consumption) AS avg_energy_consumption,
-                strftime('%H', time) AS hour
-            FROM youless_hour
-            GROUP BY hour
-            ''',
-            con
-        )
-        df_h = pd.merge(
-            df_h,
-            df_h_avg,
-            on='hour'
-        )
+        energy_day = EnergyDataDay()
+        df_day = energy_day.data
 
-        df_day = pd.read_sql(
-            '''
-            SELECT 
-                *,
-                strftime('%w', time) AS week_day
-            FROM youless_day
-            ''',
-            con
-        )
-        # We need to fill the current day with the values from the df_h table
-        kwh_per_hour = df_h.copy()
-        kwh_per_hour['time'] = kwh_per_hour['date'] + ' 00:00:00'
-        kwh_per_hour = kwh_per_hour.groupby(['time', 'week_day']).agg(
-            energy_consumption=('energy_consumption', 
-            lambda x: round(x.sum()/1000, 2))
-        )
-        df_day = df_day.set_index(['time', 'week_day']).combine_first(kwh_per_hour).reset_index()
-        df_day['time'] = pd.to_datetime(df_day['time'])
+        energy_month = EnergyDataMonth()
+        df_month = energy_month.data
 
-        df_day_avg_weekday = pd.read_sql(
-            '''
-            SELECT 
-                AVG(energy_consumption) AS avg_energy_consumption_weekday,
-                strftime('%w', time) AS week_day
-            FROM youless_day
-            GROUP BY week_day
-            ''',
-            con
-        )
-        df_day = pd.merge(
-            df_day,
-            df_day_avg_weekday,
-            on='week_day'
-        )
-
-        df_month = pd.read_sql(
-            '''
-            SELECT 
-                SUM(energy_consumption) AS energy_consumption,
-                strftime('%m', time) AS month,
-                strftime('%Y', time) AS year
-            FROM youless_day
-            GROUP BY year, month
-            ''',
-            con
-        )
-        df_month['time'] = df_month['year'] + '-' + df_month['month']
-        df_month['time'] = df_month['time'].apply(lambda x: datetime.strptime(x, '%Y-%m'))
-    return {'minute': df_m, 'hour': df_h, 'hour_avg': df_h_avg, 'day': df_day, 'month': df_month}
+    return {'minute': df_m, 'hour': df_h, 'day': df_day, 'month': df_month}
 
