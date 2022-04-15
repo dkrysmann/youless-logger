@@ -49,6 +49,7 @@ class EnergyDataMinute(YoulessData):
     WHERE  hour_diff <= 12
     '''
 
+
 class EnergyDataHour(YoulessData):
     table_names = {'hour_table': 'youless_hour'}
     query = '''
@@ -114,6 +115,7 @@ class EnergyDataDay(YoulessData):
     LIMIT 365
     '''
 
+
 class EnergyDataMonth(YoulessData):
     table_names = {'day_table': 'youless_day'}
     query = '''
@@ -137,10 +139,9 @@ class GasDataDay(EnergyDataDay):
 
 class GasDataMonth(EnergyDataMonth):
     table_names = {'day_table': 'youless_day_gas'}
-    
 
 
-def load_data():    
+def load_data():
     energy_minute = EnergyDataMinute()
     df_m = energy_minute.data
 
@@ -163,12 +164,11 @@ def load_data():
     df_month_gas = gas_month.data
 
     return {
-        'minute': df_m, 
-        'hour': df_h, 
+        'minute': df_m,
+        'hour': df_h,
         'hour_gas': df_h_gas,
-        'day': df_day, 
-        'day_gas': df_day_gas, 
-        'month': df_month, 
-        'month_gas': df_month_gas
+        'day': df_day,
+        'day_gas': df_day_gas,
+        'month': df_month,
+        'month_gas': df_month_gas,
     }
-
