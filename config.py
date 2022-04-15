@@ -8,3 +8,4 @@ with open(config_path, 'r') as j:
 
 DB_PATH = CONFIG['db_path']
 DEBUG_MODE = CONFIG['debug_mode']
+GAS_ENABLED = CONFIG.get('gas_enabled')

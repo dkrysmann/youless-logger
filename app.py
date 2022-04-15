@@ -1,90 +1,78 @@
 import dash_bootstrap_components as dbc
 from dash import html, dcc, Dash, Output, Input
-from helpers.data_processing import load_data
-from helpers.charts import (
-    dashboard_summary_numbers,
-    plot_last_year,
-    plot_current,
-    plot_bar_with_avg_line,
+from helpers.data_processing import (
+    EnergyDataDay, 
+    EnergyDataHour,
+    EnergyDataMinute, 
+    EnergyDataMonth,
+    GasDataDay,
+    GasDataHour,
+    GasDataMonth
 )
-from config import DEBUG_MODE
+from helpers.charts import MonitoringLayout
+from config import DEBUG_MODE, GAS_ENABLED
+
+nav_items = [dbc.NavLink("Electricity", href="/", active="exact")]
+if GAS_ENABLED:
+    nav_items.append(
+        dbc.NavLink("Gas", href="/gas", active="exact")
+    )
+nav = dbc.Container([dbc.NavbarSimple(
+    children=nav_items,
+    brand='Youless Monitor',
+    brand_href="#",
+    color="primary",
+    dark=True,
+)])
 
 
-def serve_layout():
-    data = load_data()
-    data_minute = data['hour']
-    data_hour = data['hour']
-    data_30days = data['day'].head(30)
-
-
-
-    return dbc.Container([
-        html.H1(children='Youless energy usage monitoring'),
-        dashboard_summary_numbers(data),
-        html.Br(),
-        dbc.Row([
-            dbc.Col([
-                dbc.Card(dbc.CardBody(
-                    dbc.Tabs([
-                        dbc.Tab(label='Current', children=[
-                            dcc.Graph(
-                                id='current',
-                                figure=plot_current(data_minute),
-                                config={
-                                    'displayModeBar': False
-                                }
-                            ),
-                        ]),
-                        dbc.Tab(label='24 Hours', children=[
-                            dcc.Graph(
-                                id='last-24-hours',
-                                figure=plot_bar_with_avg_line(
-                                    df=data_hour,
-                                    title='Energy consumption per hour',
-                                    unit='Wh'
-                                ),
-                                config={
-                                    'displayModeBar': False
-                                }
-                            ),
-                        ]),
-                        dbc.Tab(label='30 Days', children=[
-                            dcc.Graph(
-                                id='last-30-days',
-                                figure=plot_bar_with_avg_line(
-                                    df=data_30days,
-                                    title='Energy consumption last 30 days',
-                                    unit='kWh'
-                                ),
-                                config={
-                                    'displayModeBar': False
-                                }
-                            ),
-                        ])
-                    ])
-                )), 
-            ])
-        ]),
-        html.Br(),
-        dbc.Row([
-            dbc.Col([
-                dbc.Card(dbc.CardBody(dcc.Graph(
-                    id='last-365-days',
-                    figure=plot_last_year(data['month'], title='Energy consumption last 12 months', unit='kWh'),
-                    config={
-                        'displayModeBar': False
-                    }
-                )))
-            ])
-        ])
-    ], fluid=True)
-
-       
+content = html.Div(id="page-content")  
 
 app = Dash(external_stylesheets=[dbc.themes.FLATLY])
-
 app.title = 'Energy usage monitoring'
-app.layout = serve_layout
+app.layout = dbc.Container([dcc.Location(id="url"), nav, html.Br(), content])
+
+
+@app.callback(Output("page-content", "children"), [Input("url", "pathname")])
+def render_page_content(pathname):
+    if pathname == "/":
+        energy_layout = MonitoringLayout(
+            data_minute=EnergyDataMinute,
+            data_hour=EnergyDataHour,
+            data_day=EnergyDataDay,
+            data_month=EnergyDataMonth
+        )
+
+        return energy_layout.render(
+            title='Energy Monitoring',
+            summary_stats_suffix=' kWh',
+            last_24h_unit='Wh',
+            last_30d_unit='kWh',
+            last_year_unit='kWh'
+        )
+    elif pathname == "/gas":
+        gas_layout = MonitoringLayout(
+            data_minute=None,
+            data_hour=GasDataHour,
+            data_day=GasDataDay,
+            data_month=GasDataMonth
+        )
+
+        return gas_layout.render(
+            title='Gas Monitoring',
+            summary_stats_suffix=' m³',
+            last_24h_unit='L',
+            last_30d_unit='m³',
+            last_year_unit='m³'
+        )
+    # If the user tries to reach a different page, return a 404 message
+    return dbc.Jumbotron(
+        [
+            html.H1("404: Not found", className="text-danger"),
+            html.Hr(),
+            html.P(f"The pathname {pathname} was not recognised..."),
+        ]
+    )
 
 if __name__ == '__main__':
     app.run_server(debug=DEBUG_MODE, host='0.0.0.0', port='8050')

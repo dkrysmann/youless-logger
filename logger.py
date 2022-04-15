@@ -3,7 +3,7 @@ import logging
 import sqlite3 as sql
 import pandas as pd
 from datetime import datetime, timedelta
-from config import DB_PATH
+from config import DB_PATH, GAS_ENABLED
 
 
 logging.basicConfig(format='%(name)s: %(asctime)s %(levelname)s %(message)s', level=logging.INFO, datefmt='%Y-%m-%d %H:%M:%S')
@@ -17,7 +17,6 @@ class YoulessBaseLogger:
     }
     con = None
     cur = None
-    granularity = None
     report_param = None
     report_pages = None
     table_name = None
@@ -30,7 +29,7 @@ class YoulessBaseLogger:
     def __init__(self):
         self.report_param = self.GRANULARITY_MAP[self.granularity]['param']
         self.report_pages = self.GRANULARITY_MAP[self.granularity]['reports']
-        self.logger = logging.getLogger('Youless Scraper {}'.format(self.granularity))
+        self.logger = logging.getLogger('Youless Scraper {}'.format(self.__class__.__name__))
 
     @property
     def youless_path(self) -> str:
@@ -94,6 +93,9 @@ class YoulessBaseLogger:
         return len(listOfTables) > 0
 
     def store_data(self, df):
+        if df.empty:
+            self.logger.info('No data to be stored')
+            return
         with sql.connect(DB_PATH) as con:
             if not self.table_exists(): 
                 self.logger.warning(f'Table {self.table_name} does not exist. Creating...')
@@ -162,6 +164,18 @@ class YoulessEnergyDay(YoulessBaseLogger):
     granularity = 'day'
 
 
+class YoulessGasHour(YoulessBaseLogger):
+    youless_path = 'W'
+    table_name = 'youless_hour_gas'
+    granularity = 'hour'
+
+
+class YoulessGasDay(YoulessBaseLogger):
+    youless_path = 'W'
+    table_name = 'youless_day_gas'
+    granularity = 'day'
+
+
 if __name__ == '__main__':
     energy_minute_scraper = YoulessEnergyMinute()
     energy_minute_scraper.fetch_data()
@@ -169,3 +183,10 @@ if __name__ == '__main__':
     energy_hour_scraper.fetch_data()
     energy_day_scraper = YoulessEnergyDay()
     energy_day_scraper.fetch_data()
+
+    if GAS_ENABLED:
+        gas_hour_scraper = YoulessGasHour()
+        gas_hour_scraper.fetch_data()
+        gas_day_scraper = YoulessGasDay()
+        gas_day_scraper.fetch_data()
+

@@ -12,10 +12,14 @@ The data is stored in a SQLite database named `youless.db` with 3 tables set up:
 
 - `youless_minute` for minute based energy consumption
 - `youless_hour` for hourly energy consumption
-- `youless_day` for daily energy consumptoin
+- `youless_day` for daily energy consumption
+
+In case the gas sensor is enabled via the config, there will be additional tables:
+- `youless_hour_gas` for hourly gas consumption
+- `youless_day_gas` for daily gas consumption
 
 # Dashboard
-The dash application runs a dashboard to visualize the energy consumption.
+The dash application runs a dashboard to visualize the energy consumption and optionally gas consumption as well.
 
 ![dashboard](./assets/dashboard.png)
 
@@ -26,12 +30,14 @@ First you need to create a `config.json` file in the root of the repository. Thi
 ```json
 {
     "db_path": "/home/user/youless-logger/youless.db",
-    "debug_mode": false
+    "debug_mode": false,
+    "gas_enabled": false
 }
 ```
 
 - `db_path`: Full path to the file which should store your data (file will be created automatically)
 - `debug_mode`: Indicator whether the dash app should be ran in debug mode
+- `gas_enabled`: Indicator whether the collection of data from a youless gas monitor is enabled as well
 
 
 ## Script

@@ -15,7 +15,11 @@ class YoulessData:
     def load_data(self):
         with sql.connect(DB_PATH) as con:
             query = self.query.format(**self.table_names)
-            self.data = pd.read_sql(query, con)
+            try:
+                data = pd.read_sql(query, con)
+            except pd.io.sql.DatabaseError:
+                data = None
+            self.data = data
 
 
 class EnergyDataMinute(YoulessData):
@@ -123,19 +127,48 @@ class EnergyDataMonth(YoulessData):
     '''
 
 
+class GasDataHour(EnergyDataHour):
+    table_names = {'hour_table': 'youless_hour_gas'}
+
+
+class GasDataDay(EnergyDataDay):
+    table_names = {'day_table': 'youless_day_gas', 'hour_table': 'youless_hour_gas'}
+
+
+class GasDataMonth(EnergyDataMonth):
+    table_names = {'day_table': 'youless_day_gas'}
+    
+
+
 def load_data():    
-    with sql.connect(DB_PATH) as con:
-        energy_minute = EnergyDataMinute()
-        df_m = energy_minute.data
+    energy_minute = EnergyDataMinute()
+    df_m = energy_minute.data
 
-        energy_hour = EnergyDataHour()
-        df_h = energy_hour.data
+    energy_hour = EnergyDataHour()
+    df_h = energy_hour.data
 
-        energy_day = EnergyDataDay()
-        df_day = energy_day.data
+    energy_day = EnergyDataDay()
+    df_day = energy_day.data
 
-        energy_month = EnergyDataMonth()
-        df_month = energy_month.data
+    energy_month = EnergyDataMonth()
+    df_month = energy_month.data
 
-    return {'minute': df_m, 'hour': df_h, 'day': df_day, 'month': df_month}
+    energy_hour = GasDataHour()
+    df_h_gas = energy_hour.data
+
+    gas_day = GasDataDay()
+    df_day_gas = gas_day.data
+
+    gas_month = GasDataMonth()
+    df_month_gas = gas_month.data
+
+    return {
+        'minute': df_m, 
+        'hour': df_h, 
+        'hour_gas': df_h_gas,
+        'day': df_day, 
+        'day_gas': df_day_gas, 
+        'month': df_month, 
+        'month_gas': df_month_gas
+    }
 
