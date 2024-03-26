@@ -25,7 +25,7 @@ class YoulessBaseLogger:
     report_pages = None
     table_name = None
     chart_data = pd.DataFrame()
-    endpoint = 'http://youless/'
+    endpoint = 'http://192.168.1.14/'
     default_params = {'f': 'j'}  # JSON response format,
 
     def __init__(self):
@@ -55,7 +55,7 @@ class YoulessBaseLogger:
 
     @property
     def endpoint(self) -> str:
-        return f'http://youless/{self.youless_path}'
+        return f'http://192.168.1.14/{self.youless_path}'
 
     def fetch_data(self):
         self.logger.info('Fetching new data for {} reports'.format(self.report_pages))
